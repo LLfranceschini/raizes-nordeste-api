@@ -1,0 +1,319 @@
+{
+  "info": {
+    "name": "Raizes do Nordeste API - Colecao de Testes",
+    "description": "Colecao do MVP - Projeto Multidisciplinar UNINTER 2026",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:8000/api/v1", "type": "string"},
+    {"key": "access_token", "value": "", "type": "string"},
+    {"key": "pedido_id", "value": "", "type": "string"}
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "T01 - Login valido",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T01 - Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('T01 - Retorna access_token', () => {",
+                "  var json = pm.response.json();",
+                "  pm.expect(json.access_token).to.exist;",
+                "  pm.expect(json.token_type).to.equal('Bearer');",
+                "  pm.expect(json.perfil).to.equal('CLIENTE');",
+                "  pm.collectionVariables.set('access_token', json.access_token);",
+                "});",
+                "pm.test('T01 - Retorna refresh_token', () => {",
+                "  pm.expect(pm.response.json().refresh_token).to.exist;",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"maria@email.com\", \"senha\": \"Cliente@123\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth","login"]}
+          }
+        },
+        {
+          "name": "T07 - Login credenciais invalidas (401)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T07 - Status 401', () => pm.response.to.have.status(401));",
+                "pm.test('T07 - Mensagem de erro correta', () => {",
+                "  pm.expect(pm.response.json().detail).to.include('invalidos');",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"maria@email.com\", \"senha\": \"senhaErrada\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth","login"]}
+          }
+        },
+        {
+          "name": "T08 - Acesso sem token (403)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T08 - Status 403 sem token', () => pm.response.to.have.status(403));"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/pedidos", "host": ["{{base_url}}"], "path": ["pedidos"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Produtos",
+      "item": [
+        {
+          "name": "T02 - Listar cardapio unidade 1 (200)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T02 - Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('T02 - Retorna lista de produtos', () => {",
+                "  var json = pm.response.json();",
+                "  pm.expect(json).to.be.an('array');",
+                "  pm.expect(json.length).to.be.greaterThan(0);",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/produtos/unidade/5/cardapio", "host": ["{{base_url}}"], "path": ["produtos","unidade","5","cardapio"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pedidos",
+      "item": [
+        {
+          "name": "T03 - Criar pedido valido (201)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T03 - Status 201', () => pm.response.to.have.status(201));",
+                "pm.test('T03 - Pedido criado com status AGUARDANDO_PAGAMENTO', () => {",
+                "  var json = pm.response.json();",
+                "  pm.expect(json.id).to.exist;",
+                "  pm.expect(json.status).to.equal('AGUARDANDO_PAGAMENTO');",
+                "  pm.expect(json.canal_pedido).to.equal('APP');",
+                "  pm.expect(json.total).to.be.greaterThan(0);",
+                "  pm.collectionVariables.set('pedido_id', json.id);",
+                "});",
+                "pm.test('T03 - Contem itens', () => {",
+                "  pm.expect(pm.response.json().itens.length).to.be.greaterThan(0);",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"unidade_id\": 5, \"canal_pedido\": \"APP\", \"itens\": [{\"produto_id\": 1, \"quantidade\": 2}, {\"produto_id\": 4, \"quantidade\": 1}], \"forma_pagamento\": \"MOCK\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/pedidos", "host": ["{{base_url}}"], "path": ["pedidos"]}
+          }
+        },
+        {
+          "name": "T06 - Buscar pedido por ID (200)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T06 - Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('T06 - Pedido correto retornado', () => {",
+                "  var json = pm.response.json();",
+                "  pm.expect(json.id.toString()).to.equal(pm.collectionVariables.get('pedido_id').toString());",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/pedidos/{{pedido_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos","{{pedido_id}}"]
+            }
+          }
+        },
+        {
+          "name": "T09 - Pedido produto nao disponivel na unidade (409)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T09 - Status 409 produto indisponivel', () => pm.response.to.have.status(409));",
+                "pm.test('T09 - Erro PRODUTO_INDISPONIVEL', () => {",
+                "  pm.expect(pm.response.json().error).to.equal('PRODUTO_INDISPONIVEL');",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"unidade_id\": 5, \"canal_pedido\": \"APP\", \"itens\": [{\"produto_id\": 999, \"quantidade\": 1}], \"forma_pagamento\": \"MOCK\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/pedidos", "host": ["{{base_url}}"], "path": ["pedidos"]}
+          }
+        },
+        {
+          "name": "T10 - Pedido estoque insuficiente (409)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T10 - Status 409 estoque insuficiente', () => pm.response.to.have.status(409));",
+                "pm.test('T10 - Erro ESTOQUE_INSUFICIENTE', () => {",
+                "  pm.expect(pm.response.json().error).to.equal('ESTOQUE_INSUFICIENTE');",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"unidade_id\": 5, \"canal_pedido\": \"TOTEM\", \"itens\": [{\"produto_id\": 1, \"quantidade\": 9999}], \"forma_pagamento\": \"MOCK\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/pedidos", "host": ["{{base_url}}"], "path": ["pedidos"]}
+          }
+        },
+        {
+          "name": "T11 - Pedido sem canal_pedido (422)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T11 - Status 422 campo invalido', () => pm.response.to.have.status(422));",
+                "pm.test('T11 - Erro de validacao', () => {",
+                "  pm.expect(pm.response.json().error).to.equal('ERRO_VALIDACAO');",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"unidade_id\": 1, \"itens\": [{\"produto_id\": 1, \"quantidade\": 1}], \"forma_pagamento\": \"MOCK\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/pedidos", "host": ["{{base_url}}"], "path": ["pedidos"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pagamentos",
+      "item": [
+        {
+          "name": "T04 - Processar pagamento mock (200)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T04 - Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('T04 - Pagamento processado', () => {",
+                "  var json = pm.response.json();",
+                "  pm.expect(json.status).to.be.oneOf(['APROVADO','RECUSADO']);",
+                "  pm.expect(json.ref_externa).to.exist;",
+                "  pm.expect(json.tentativas).to.be.greaterThan(0);",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/pagamentos/{{pedido_id}}/processar",
+              "host": ["{{base_url}}"],
+              "path": ["pagamentos","{{pedido_id}}","processar"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fidelidade",
+      "item": [
+        {
+          "name": "T05 - Consultar saldo de pontos (200)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('T05 - Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('T05 - Retorna saldo de pontos', () => {",
+                "  var json = pm.response.json();",
+                "  pm.expect(json.pontos_acumulados).to.exist;",
+                "  pm.expect(json.pontos_disponiveis).to.exist;",
+                "  pm.expect(json.nivel).to.exist;",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/fidelidade", "host": ["{{base_url}}"], "path": ["fidelidade"]}
+          }
+        }
+      ]
+    }
+  ]
+}
