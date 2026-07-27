@@ -6,3 +6,6 @@ __pycache__/
 venv/
 *.egg-info/
 .pytest_cache/
+.idea/
+criar_*.py
+setup_project.py
