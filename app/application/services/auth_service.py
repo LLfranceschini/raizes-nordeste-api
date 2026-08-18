@@ -102,3 +102,53 @@ def _log(db, usuario_id, acao, entidade, entidade_id, ip_origem=None):
         ip_origem=ip_origem,
     ))
     db.commit()
+
+def refresh_access_token(db: Session, refresh_token_str: str) -> TokenResponse:
+    """Valida o refresh token e emite um novo access token sem novo login."""
+    import hashlib
+
+    # Decodifica e valida o token
+    payload = decodificar_token(refresh_token_str)
+    if payload is None or payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token invalido ou expirado."
+        )
+
+    # Verifica no banco se nao foi revogado
+    token_hash = hashlib.sha256(refresh_token_str.encode()).hexdigest()
+    rt = db.query(RefreshToken).filter(
+        RefreshToken.token_hash == token_hash,
+        RefreshToken.revogado == False
+    ).first()
+
+    if not rt:
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token invalido ou ja revogado."
+        )
+
+    # Busca o usuario
+    usuario_id = payload.get("sub")
+    usuario = usuario_repository.buscar_por_id(db, int(usuario_id))
+    if not usuario or not usuario.ativo:
+        raise HTTPException(
+            status_code=401,
+            detail="Usuario nao encontrado ou desativado."
+        )
+
+    # Gera novo access token (mantem o mesmo refresh token)
+    novo_access_token = criar_access_token({
+        "sub": str(usuario.id),
+        "perfil": usuario.perfil
+    })
+
+    _log(db, usuario.id, "TOKEN_RENOVADO", "usuario", usuario.id)
+
+    return TokenResponse(
+        access_token=novo_access_token,
+        token_type="Bearer",
+        expires_in=1800,
+        refresh_token=refresh_token_str,
+        perfil=usuario.perfil,
+    )
