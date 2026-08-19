@@ -8,7 +8,7 @@ StatusPedido = Literal[
     "AGUARDANDO_PAGAMENTO", "PAGO", "EM_PREPARO",
     "PRONTO", "ENTREGUE", "CANCELADO"
 ]
-FormaPagamento = Literal["PIX", "CARTAO_CREDITO", "CARTAO_DEBITO", "DINHEIRO", "MOCK"]
+FormaPagamento = Literal["PIX", "CARTAO_CREDITO", "CARTAO_DEBITO", "DINHEIRO", "MOCK", "FORCAR_RECUSA"]
 
 
 class ItemPedidoCreate(BaseModel):
